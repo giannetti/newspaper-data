@@ -113,21 +113,40 @@ params <- "?andtext=cats&format=json" # search for "cats", return a JSON respons
 req <- request(paste0(base_url, endpoint, params)) # paste together the URI
 req
 
-# let's see what the request will send to the server
+```
+
+
+Let's see what the request will send to the server.
+
+```{r dry_run}
 req %>% req_dry_run()
 
-# let's actually perform the request and fetch a response
+```
+
+Let's actually perform the request and fetch a response.
+
+```{r response}
+
 resp <- req %>% req_perform()
 resp
+```
 
-# we can have a look at the headers (or metadata) of the response we retrieved with `resp_headers()` or a specific header with `resp_header()`
+
+We can have a look at the headers (or metadata) of the response we retrieved with `resp_headers()` or a specific header with `resp_header()`
+
+```{r headers}
+
 resp %>% resp_headers()
 resp %>% resp_header('content-length') # the byte count of the data in the body
-
-# let's now examine the structure of the body of the JSON response with the `str()` function
-resp %>% resp_body_json() %>% str()
-
 ```
+
+
+Let's now examine the structure of the body of the JSON response with the `str()` function.
+
+```{r str}
+resp %>% resp_body_json() %>% str()
+```
+
 
 ## Parsing and Transforming the Body of the Response
 
