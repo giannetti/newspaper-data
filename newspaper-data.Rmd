@@ -3,8 +3,8 @@ title: "Collecting Newspaper Data in R"
 author: "Francesca Giannetti"
 date: "2023-10-02"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -62,7 +62,7 @@ Like postal addresses, URIs have a specific format used to direct the request to
 
 -   *The Base URI*: the domain and part of the path that is included on all resources. It acts as the "root" for any particular resource. For example, Chronicling America has a base URI of `https://chroniclingamerica.loc.gov`.
 -   *An Endpoint*: a resource on that domain that you wish to access. APIs generally have many endpoints.
--   *Query parameters*: to access only partial sets of data from a resource (e.g., only articles mentioning cats) you also need to include a set of query parameters. These are like extra arguments that are given to the request function. Query parameters are listed after a question mark ? in the URI, and are formed as key-value pairs.
+-   *Query parameters*: to access only partial sets of data from a resource (e.g., only articles mentioning cats) you also need to include a set of query parameters. These are like extra arguments that are given to the request function. Query parameters are listed after a question mark `?` in the URI, and are formed as key-value pairs.
 -   *An API key and/or secret*: many but not all web services require you to register with them in order to send requests. This allows them to limit access to the data, as well as to keep track of who is asking for what data. To facilitate tracking, many services will provide access tokens or API keys.
 
 ## Chronicling America
@@ -143,7 +143,7 @@ resp %>% resp_header('content-length') # the byte count of the data in the body
 
 Let's now examine the structure of the body of the JSON response with the `str()` function.
 
-```{r str}
+```{r str1, results='hide'}
 resp %>% resp_body_json() %>% str()
 ```
 
@@ -179,11 +179,12 @@ cats[1,30] # the url field of the first row (url is stored in column index 30)
 
 ## Phrase Search
 
-This time, we will use some more functions from the [`httr2` package](https://httr2.r-lib.org/index.html) to construct our request. Note how we are still breaking up the base URI, the endpoint, and the parameters for greater clarity. We will use another parameter, `phrasesearch`, to look for a two-word phrase instead of a single word. A "sanitary train" is terminology specific to World War I. It refers to an ambulance unit that was assigned to support an entire infantry division. We can expect results mainly from the 1917-1918 time frame.
+This time, we will use some more functions from the [`httr2` package](https://httr2.r-lib.org/index.html) to construct our request. Note how we are still breaking up the base URI, the endpoint, and the parameters for greater clarity. We will use another parameter, `phrasesearch`, to look for a two-word phrase instead of a single word. 
+A "sanitary train" is terminology specific to World War I. It refers to an ambulance unit that was assigned to support an entire infantry division. We can expect results mainly from the 1917-1918 time frame.
 
 Note that, as expected, we only get twenty results in our dataframe. But if we examine the `totalItems` field value, we see there are many more. How could we retrieve these? By constructing a for loop and using the `page` field to iterate through all the pages of results. Remember that there are twenty results per page, so you would iterate through `round(3416 / 20)` times. We won't do it here, but I show an example of a for loop later with the NYT API. It could easily be adapted to do the job.
 
-```{r}
+```{r wwi}
 
 # make request and gather response as JSON
 wwi_resp <- request("https://chroniclingamerica.loc.gov") %>% 
@@ -292,7 +293,7 @@ nobel
 ```
 Like most web APIs, this one returns a JSON response.
 
-```{r str}
+```{r str2, results='hide'}
 
 nobel %>% resp_body_json() %>% str()
 ```
@@ -313,7 +314,7 @@ As before with the Chronicling America API, we're dealing with the first page of
 
 It's rather easy to hit rate limits with the New York Times APIs. Rate limits are imposed to prevent you from making too many server requests and possibly overwhelming their servers. The NYT [FAQs](https://developer.nytimes.com/faq#a11) indicate that you should insert 12 seconds in between calls and make no more than 5 requests per minute. There are various ways of handling this, including the `req_throttle()` argument of httr2. We will use `Sys.sleep()` to introduce a generous 20 second pause in between requests.
 
-```{r nobel_articles}
+```{r nobel_articles, eval=FALSE}
 
 # read your NYT api key back into memory, if needed
 load("nytimes_apikey")
@@ -354,7 +355,7 @@ nobel_articles[1:10,21] # looking at headline for the first 10 rows
 
 Coverage by section.
 
-```{r p1}
+```{r p1, eval=FALSE}
 
 # Visualize coverage by section
 p1 <- nobel_articles %>% 
@@ -376,7 +377,7 @@ p1
 
 Years with the most coverage.
 
-```{r p2}
+```{r p2, eval=FALSE}
 
 p2 <- nobel_articles %>%
   mutate(pubDay = gsub("T.*","",response.docs.pub_date),
@@ -424,3 +425,10 @@ Fitzgerald, Jonathan D. "Working with The New York Times API in R." 2018. <https
 
 Freeman, Michael, and Joel Ross. "Accessing Web APIs." In *Technical Foundations of Informatics*. Seattle, WA: UW Information School, 2019. <https://info201.github.io/>.
 
+LC Labs. "Library of Congress Data Exploration." Last updated May 17, 2023. <https://github.com/LibraryOfCongress/data-exploration>
+
+## Projects that Use Newspaper Data
+
+Interested in exploring projects in the humanities that use newspaper data? You might be interested in the winners of the [Chronicling America Data Challenge](https://www.neh.gov/news/press-release/2016-07-25). I'd also recommend searching [_Reviews in Digital Humanities_](https://reviewsindh.pubpub.org/) for any mention of "newspaper".
+
+Lastly, Martin Saveedra (thanks, Martin!) tipped me off to the work of Melissa Dell on the Chronicling America data that improves OCR and detects content areas. I haven't dipped into it yet, but I thought I'd pass along the information. "American Stories": <https://dell-research-harvard.github.io/resources/americanstories>.
