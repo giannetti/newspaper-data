@@ -3,14 +3,17 @@ title: "Collecting Newspaper Data in R"
 author: "Francesca Giannetti"
 date: "2023-10-02"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 
 if (!(require(httr2))) {
   install.packages("httr2")
+}
+if (!(require(httpuv))) {
+  install.packages("httpuv")
 }
 if (!(require(ggplot2))) {
   install.packages("ggplot2")
@@ -341,7 +344,7 @@ nobel_pages <- vector("list",length=maxPages)
 for(i in 0:maxPages){
   nytSearch <- fromJSON(paste0(baseurl, "&page=", i), flatten = TRUE) %>% data.frame() 
   nobel_pages[[i+1]] <- nytSearch 
-  Sys.sleep(20) # wait 20 seconds between calls
+  Sys.sleep(15) # wait 15 seconds between calls
 }
 
 # paste together page objects into a new dataframe

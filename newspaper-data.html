@@ -528,26 +528,24 @@ retrieved with <code>resp_headers()</code> or a specific header with
 <code>resp_header()</code></p>
 <pre class="r"><code>resp %&gt;% resp_headers()</code></pre>
 <pre><code>## &lt;httr2_headers&gt;</code></pre>
-<pre><code>## date: Wed, 15 Nov 2023 14:22:17 GMT
+<pre><code>## date: Thu, 16 Nov 2023 14:46:50 GMT
 ## content-type: application/json
-## content-length: 27531
-## last-modified: Wed, 15 Nov 2023 13:26:12 GMT
+## last-modified: Thu, 16 Nov 2023 14:46:50 GMT
 ## x-robots-tag: noindex, nofollow
-## expires: Thu, 16 Nov 2023 13:26:12 GMT
+## expires: Fri, 17 Nov 2023 14:46:50 GMT
 ## cache-control: s-maxage=86400, public, max-age=86400
 ## access-control-allow-origin: *
 ## access-control-allow-headers: X-requested-with
 ## x-frame-options: SAMEORIGIN
 ## content-encoding: gzip
 ## vary: Accept-Encoding
-## x-varnish: 350281872 339308194
+## x-varnish: 419273496
 ## via: 1.1 varnish (Varnish/5.2)
-## cf-cache-status: MISS
-## accept-ranges: bytes
+## cf-cache-status: EXPIRED
 ## server: cloudflare
-## cf-ray: 82682541deff8cba-EWR</code></pre>
+## cf-ray: 8270867f39c4c329-EWR</code></pre>
 <pre class="r"><code>resp %&gt;% resp_header(&#39;content-length&#39;) # the byte count of the data in the body</code></pre>
-<pre><code>## [1] &quot;27531&quot;</code></pre>
+<pre><code>## NULL</code></pre>
 <p>Let’s now examine the structure of the body of the JSON response with
 the <code>str()</code> function.</p>
 <pre class="r"><code>resp %&gt;% resp_body_json() %&gt;% str()</code></pre>
@@ -789,7 +787,7 @@ nobel_pages &lt;- vector(&quot;list&quot;,length=maxPages)
 for(i in 0:maxPages){
   nytSearch &lt;- fromJSON(paste0(baseurl, &quot;&amp;page=&quot;, i), flatten = TRUE) %&gt;% data.frame() 
   nobel_pages[[i+1]] &lt;- nytSearch 
-  Sys.sleep(20) # wait 20 seconds between calls
+  Sys.sleep(15) # wait 15 seconds between calls
 }
 
 # paste together page objects into a new dataframe
