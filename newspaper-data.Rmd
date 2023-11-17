@@ -315,7 +315,9 @@ nobel_flat <- fromJSON(nobel, flatten = TRUE) %>% data.frame()
 
 As before with the Chronicling America API, we're dealing with the first page of results. Only 10 in this case. This time we will build a for loop to retrieve more.
 
-It's rather easy to hit rate limits with the New York Times APIs. Rate limits are imposed to prevent you from making too many server requests and possibly overwhelming their servers. The NYT [FAQs](https://developer.nytimes.com/faq#a11) indicate that you should insert 12 seconds in between calls and make no more than 5 requests per minute. There are various ways of handling this, including the `req_throttle()` argument of httr2. We will use `Sys.sleep()` to introduce a generous 20 second pause in between requests.
+It's rather easy to hit rate limits with the New York Times APIs. Rate limits are imposed to prevent you from making too many server requests and possibly overwhelming their servers. The NYT [FAQs](https://developer.nytimes.com/faq#a11) indicate that you should insert 12 seconds in between calls and make no more than 5 requests per minute. There are various ways of handling this, including the `req_throttle()` argument of httr2. We will use `Sys.sleep()` to introduce a generous 15 second pause in between requests.
+
+*Nota bene*: this code chunk will take approx. 30-45 minutes to run. If you don't want to wait that long, the easiest way to tweak it is to shorten the date window. 
 
 ```{r nobel_articles, eval=FALSE}
 
@@ -324,8 +326,8 @@ load("nytimes_apikey")
 
 # Parameters
 term <- "nobel+prize+literature" # Need to use + to string together separate words
-begin_date <- "20030101" # Let's look at 3 years of matches
-end_date <- "20060101"
+begin_date <- "20030101" # Let's look at 10 years of matches
+end_date <- "20130101"
 
 baseurl <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",term,
                   "&begin_date=",begin_date,"&end_date=",end_date,
@@ -334,8 +336,8 @@ baseurl <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",t
 # create request
 initialQuery <- fromJSON(baseurl) 
 
-# determine how many pages of results to go through (36)
-maxPages <- round((initialQuery$response$meta$hits[1] / 10)-1) 
+# determine how many pages of results to go through (147)
+maxPages <- round((initialQuery$response$meta$hits[1] / 10)-1)
 
 # initialize object to store page results
 nobel_pages <- vector("list",length=maxPages)
@@ -377,6 +379,7 @@ p1 <- nobel_articles %>%
 
 p1
 ```
+![Coverage by section](coverage-by-section.png)
 
 Years with the most coverage.
 
@@ -396,6 +399,24 @@ p2 <- nobel_articles %>%
 p2
 
 ```
+![Coverage by year](coverage-by-year.png)
+
+So, what went on in 2006? There are several factors, but two obvious contributors were the revelation of Gûnther Grass's controversial past as well Turkish writer Orhan Pamuk's award that year, which came as something of a surprise.
+
+```{r detail, eval=FALSE}
+
+# reformat the pub_date as a date object in R, then pass a filter for 2006
+nobel_articles %>% 
+  mutate(pub_date = as.POSIXct(response.docs.pub_date, 
+                      format = "%Y-%m-%dT%T%z", tz="")) %>%
+  filter(pub_date >= "2006-01-01 00:00:00" & 
+         pub_date < "2007-01-01 00:00:00") %>%
+  select(response.docs.headline.main, response.docs.word_count) %>% #select headline and word count
+  arrange(desc(response.docs.word_count)) %>% # descending sort by word count
+  View() # open table view
+
+```
+
 
 ## Exercise: NYT Article Search API
 
@@ -432,6 +453,6 @@ LC Labs. "Library of Congress Data Exploration." Last updated May 17, 2023. <htt
 
 ## Projects that Use Newspaper Data
 
-Interested in exploring projects in the humanities that use newspaper data? You might be interested in the winners of the [Chronicling America Data Challenge](https://www.neh.gov/news/press-release/2016-07-25). I'd also recommend searching [_Reviews in Digital Humanities_](https://reviewsindh.pubpub.org/) for any mention of "newspaper".
+Interested in exploring projects in the humanities that use newspaper data? You might be interested in the winners of the [Chronicling America Data Challenge](https://www.neh.gov/news/press-release/2016-07-25). I'd also recommend searching [_Reviews in Digital Humanities_](https://reviewsindh.pubpub.org/) for any mention of "newspaper."
 
 Lastly, Martin Saveedra (thanks, Martin!) tipped me off to the work of Melissa Dell on the Chronicling America data that improves OCR and detects content areas. I haven't dipped into it yet, but I thought I'd pass along the information. "American Stories": <https://dell-research-harvard.github.io/resources/americanstories>.
