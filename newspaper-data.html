@@ -419,7 +419,7 @@ request to the right resource.</p>
 <li><em>The Base URI</em>: the domain and part of the path that is
 included on all resources. It acts as the “root” for any particular
 resource. For example, Chronicling America has a base URI of
-<code>https://chroniclingamerica.loc.gov</code>.</li>
+<code>https://www.loc.gov</code>.</li>
 <li><em>An Endpoint</em>: a resource on that domain that you wish to
 access. APIs generally have many endpoints.</li>
 <li><em>Query parameters</em>: to access only partial sets of data from
@@ -522,10 +522,10 @@ retrieved with <code>resp_headers()</code> or a specific header with
 <code>resp_header()</code></p>
 <pre class="r"><code>resp %&gt;% resp_headers()</code></pre>
 <pre><code>## &lt;httr2_headers&gt;
-## date: Mon, 22 Sep 2025 11:54:31 GMT
+## date: Mon, 22 Sep 2025 14:26:28 GMT
 ## content-type: application/json
 ## content-length: 596467
-## cf-ray: 98319baa7992f9a9-EWR
+## cf-ray: 98327a3e2d0314ed-EWR
 ## access-control-allow-origin: *
 ## referrer-policy: no-referrer-when-downgrade
 ## strict-transport-security: max-age=3600; preload
@@ -540,10 +540,10 @@ retrieved with <code>resp_headers()</code> or a specific header with
 ## x-nearside-cache-hits: 0
 ## cache-control: no-transform, max-age=86400
 ## cf-cache-status: HIT
-## age: 30181
+## age: 39298
 ## accept-ranges: bytes
 ## vary: Accept-Encoding
-## set-cookie: _cfuvid=Qc9oxhegmzcflbTnnSG.YNSceUxvZdcz8KfOL_5c2cw-1758542071463-0.0.1.1-604800000; path=/; domain=.loc.gov; HttpOnly; Secure; SameSite=None
+## set-cookie: _cfuvid=RbwFuy.34LrFo0ntjh8oVGqcKB5b3CZXaY_IhaO6Rrk-1758551188224-0.0.1.1-604800000; path=/; domain=.loc.gov; HttpOnly; Secure; SameSite=None
 ## server: cloudflare</code></pre>
 <pre class="r"><code>resp %&gt;% resp_header(&#39;content-length&#39;) # the byte count of the data in the body</code></pre>
 <pre><code>## [1] &quot;596467&quot;</code></pre>
@@ -622,7 +622,7 @@ wwi_nested &lt;- wwi_json$results
 wwi_df &lt;- as.data.frame(wwi_nested)
 wwi_df &lt;- flatten(wwi_df)</code></pre>
 <p>Let’s take a look at the first response to our query</p>
-<pre class="r"><code># the description field (indexed as column 9) contains the first several words of an article
+<pre class="r"><code># the description field (indexed as column 9) contains the first several words of the page
 wwi_df[1,9]</code></pre>
 <pre><code>## [[1]]
 ## [1] &quot;Page 4 A R i il AT i i g 57 R i AN N W ﬂ lm B HIT f e l 2 144 ﬁ 5 WOl 4 ST e 4 SRy 2 it ﬁizuut X éimlcf PRI LTI SR B T 1N ii e A1 L Y LKy s it Pp e aa 4 1 WEE Ve d il a3 ff 3 Uwj TR i S A i ﬁ R__A N 7NQ l s 7 e b P ﬁﬁ s o rg wgg W ﬁt p VL S b 4 g i ﬁ N k o ﬂ M il e Nr _7 i e Ni_ R G Y B Ll TRENCH AND CAMP for thesodiers of tho United Bintes et e the chlcmx NllQonul War Work Council of cooperation of ue tlzzdnlmdel Hﬁdﬂ States named as the Advisory Board on page 4 CAMP MEADE EDITION sP ene Weonnaay 5t Camp s orﬂon of The Washington Star Washiogton EDWIN K G0NTRUMe Editor Business Office at Y M C A Administration Building at Admiral and Portland roads News and correspondence received at all Y M C A bulldings on Camp Meade reservations when properly addressed The soldiers own paper a&quot;</code></pre>
@@ -633,6 +633,144 @@ to do a ctrl + F to find “sanitary train.”</p>
 <pre class="r"><code>wwi_df[1,2]</code></pre>
 <pre><code>## [[1]]
 ## [1] &quot;http://www.loc.gov/resource/sn92068220/1918-01-30/ed-1/?sp=4&quot;</code></pre>
+</div>
+<div id="a-for-loop-to-retrieve-all-search-results" class="section level2">
+<h2>A for loop to retrieve all search results</h2>
+<p>In order to go beyond the 40 item response limit of a single API
+call, we need to implement recursion using the <code>pagination</code>
+values. The following code has been adapted from the <a href="https://libraryofcongress.github.io/data-exploration/loc.gov%20JSON%20API/Chronicling_America/ChronAm_analyzing_word_frequency_newspaper_frontpages.html#using-chronicling-america-to-analyze-word-frequency-in-newspaper-front-pages">Using
+Chronicling America to analyze word frequency in newspaper Front
+Pages</a> IPython notebook.</p>
+<pre class="r"><code># Define the search URL
+# We will limit ourselves to only front pages by using the `front_pages_only` field
+searchURL &lt;- &quot;https://www.loc.gov/collections/chronicling-america/?dl=page&amp;end_date=1918-12-31&amp;front_pages_only=true&amp;ops=PHRASE&amp;qs=sanitary+train&amp;searchType=advanced&amp;start_date=1917-01-01&amp;fo=json&quot;
+
+# Define the function
+get_item_ids &lt;- function(url, items = character(), conditional = TRUE, depth = 0, max_depth = 42) {
+  if (depth &gt; max_depth) {
+    warning(&quot;Maximum recursion depth reached. Stopping pagination.&quot;)
+    return(items)
+  }
+  # Check that the query URL is not an item or resource link
+  exclude &lt;- c(&quot;loc.gov/item&quot;, &quot;loc.gov/resource&quot;)
+  if (any(sapply(exclude, grepl, url))) {
+    stop(&quot;Your URL points directly to an item or resource page. Please use a search URL instead.&quot;)
+  }
+
+  # Request pages of 100 results at a time
+  response &lt;- request(searchURL) %&gt;% req_url_query(fo = &quot;json&quot;, c = 100, at = &quot;results,pagination&quot;) %&gt;% req_perform()
+
+  # Check that the API request was successful
+  if (resp_status(response) == 200) {
+    data &lt;- resp_body_json(response)
+   
+    # Process results
+    for (result in data$results) {
+      original_format &lt;- result$original_format
+      is_collection_or_web &lt;- &quot;collection&quot; %in% original_format || &quot;web page&quot; %in% original_format
+
+      if (!is_collection_or_web &amp;&amp; isTRUE(conditional)) {
+        item &lt;- result$id
+        if (!is.null(item)) {
+          if (startsWith(item, &quot;http://www.loc.gov/resource&quot;) || startsWith(item, &quot;http://www.loc.gov/item&quot;)) {
+            items &lt;- c(items, item)
+          }
+        }
+      }
+    }
+
+    # Recursively follow pagination
+    if (!is.null(data$pagination[[&quot;next&quot;]])) {
+      next_url &lt;- data$pagination[[&quot;next&quot;]]
+      items &lt;- get_item_ids(next_url, items, conditional, depth + 1, max_depth)
+    }
+
+    return(items)
+  } else {
+    message(&quot;There was a problem. Try running the function again or check your search URL.&quot;)
+    return(NULL)
+  }
+}
+
+# Run the query
+ids_list &lt;- get_item_ids(searchURL)
+
+# Append &#39;&amp;fo=json&#39; to each item ID
+ids_list_json &lt;- sapply(ids_list, function(id) {
+  if (!grepl(&quot;&amp;fo=json$&quot;, id)) {
+    paste0(id, &quot;&amp;fo=json&quot;)
+  } else {
+    id
+  }
+})
+
+# Final list
+ids &lt;- ids_list_json
+
+cat(&quot;\nSuccess! Your API Search Query found&quot;, length(ids), &quot;related newspaper pages. You may proceed.\n&quot;)</code></pre>
+<p>Next, we will want to get some basic metadata associated with the
+query and store it as a dataframe, and then possibly export it as a CSV
+file to play around with later. We are implementing the
+<code>req_throttle()</code> function in httr2 to keep within specified
+rate limits for the API.<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a></p>
+<p>As a fun exercise, try to figure out how you could adapt the code
+that starts on line 395 to create a bar plot of mentions of “sanitary
+train” by state using the <code>df</code> object.</p>
+<pre class="r"><code># Create a list to store the item metadata
+item_metadata_list &lt;- list()
+
+# Loop through each item URL
+for (item_id in ids_list_json) {
+  # Build the request with throttling: max 15 requests per 60 seconds
+  req &lt;- request(item_id) %&gt;%
+    req_throttle(capacity = 15, fill_time_s = 60)
+
+  resp &lt;- req_perform(req)
+
+  # Check for successful response
+  if (resp_status(resp) == 200) {
+    item_data &lt;- resp_body_json(resp)
+
+    # Skip if &#39;location_city&#39; is missing
+    if (is.null(item_data$item$location_city)) next
+
+    # Extract metadata
+    metadata &lt;- list(
+      `Newspaper Title` = item_data$item$newspaper_title,
+      `Issue Date` = item_data$item$date,
+      `Page Number` = item_data$pagination$current,
+      `LCCN` = item_data$item$number_lccn,
+      `City` = item_data$item$location_city,
+      `State` = item_data$item$location_state,
+      `Contributor` = item_data$item$contributor_names,
+      `Batch` = item_data$item$batch,
+      `PDF Link` = item_data$resource$pdf
+    )
+
+    item_metadata_list &lt;- append(item_metadata_list, list(metadata))
+  }
+}
+
+# Convert list of metadata to a data frame
+df &lt;- bind_rows(item_metadata_list)
+
+# Reformat date to MM-DD-YYYY
+df &lt;- df %&gt;%
+  mutate(`Issue Date` = format(lubridate::ymd(`Issue Date`), &quot;%m-%d-%Y&quot;))
+
+cat(&quot;\nReady to proceed to the next step!\n&quot;)
+
+# flatten lists in order to write to file
+# Vector of column names that are lists
+list_columns &lt;- c(&quot;Newspaper Title&quot;, &quot;Page Number&quot;, &quot;LCCN&quot;, &quot;City&quot;, &quot;State&quot;, &quot;Contributor&quot;, &quot;Batch&quot;)
+
+# Flatten each list column by collapsing elements into a comma-separated string
+df[list_columns] &lt;- lapply(df[list_columns], function(col) {
+  sapply(col, function(x) paste(x, collapse = &quot;, &quot;))
+})
+
+# write to file
+write.csv(df, &quot;sanitary-train-chronicling-america-search-results.csv&quot;, fileEncoding = &quot;UTF-8&quot;)</code></pre>
 </div>
 <div id="exercise" class="section level2">
 <h2>Exercise</h2>
@@ -748,7 +886,7 @@ nobel</code></pre>
 ## GET https://api.nytimes.com/svc/search/v2/articlesearch.json?api-key=G4eclG62mG4MIynrC5N5B2TSgFDvimps&amp;q=Nobel%20prize%20literature
 ## Status: 200 OK
 ## Content-Type: application/json
-## Body: In memory (17831 bytes)</code></pre>
+## Body: In memory (17759 bytes)</code></pre>
 <p>Like most web APIs, this one returns a JSON response.</p>
 <pre class="r"><code># the str() function in R displays the internal structure of an R object; it allows you to see all the nested structures and data types of the JSON response
 nobel %&gt;% resp_body_json() %&gt;% str()</code></pre>
@@ -910,6 +1048,8 @@ visit the <a href="https://njdnp.libraries.rutgers.edu/">New Jersey
 Digital Newspaper Project website</a>.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
 <li id="fn2"><p>Information on the Chronicling America APIs and bulk
 downloads is available at <a href="https://www.loc.gov/collections/chronicling-america/about-this-collection/technical-information/" class="uri">https://www.loc.gov/collections/chronicling-america/about-this-collection/technical-information/</a>.<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+<li id="fn3"><p>For more on rate limits with the Chronicling America
+API, see <a href="https://libraryofcongress.github.io/data-exploration/loc.gov%20JSON%20API/Chronicling_America/README.html#rate-limits-and-definitions" class="uri">https://libraryofcongress.github.io/data-exploration/loc.gov%20JSON%20API/Chronicling_America/README.html#rate-limits-and-definitions</a>.<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
 </ol>
 </div>
 

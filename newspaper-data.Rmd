@@ -3,8 +3,8 @@ title: "Collecting Newspaper Data in R"
 author: "Francesca Giannetti"
 date: "2023-11-17"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 date-modified: "2025-09-22"
 ---
