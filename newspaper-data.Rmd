@@ -29,6 +29,9 @@ if (!(require(dplyr))) {
 if (!(require(rmarkdown))) {
   install.packages("rmarkdown")
 }
+if (!(require(readr))) {
+  install.packages("readr")
+}
 if (!(require(knitr))) {
   install.packages("knitr")
 }
@@ -117,7 +120,6 @@ req
 
 ```
 
-
 Let's see what the request will send to the server.
 
 ```{r dry_run}
@@ -133,7 +135,6 @@ resp <- req %>% req_perform()
 resp
 ```
 
-
 We can have a look at the headers (or metadata) of the response we retrieved with `resp_headers()` or a specific header with `resp_header()`
 
 ```{r headers}
@@ -141,7 +142,6 @@ We can have a look at the headers (or metadata) of the response we retrieved wit
 resp %>% resp_headers()
 resp %>% resp_header('content-length') # the byte count of the data in the body
 ```
-
 
 ## Parsing and Transforming the Body of the Response
 
@@ -404,7 +404,7 @@ Unlike Chronicling America, the New York Times APIs do require user credentials.
 
 Go to <https://developer.nytimes.com/signup>. Click Create account and follow the prompts to register. Notice that the New York Times offers several APIs, including Article Search, Archive, Books, Comments, Movie Reviews, Top Stories, and more.
 
-Once logged in, create an app for your research by clicking on your user name in the upper right and selecting Apps > + NEW APP. In your app, be sure to enable the Article Search API. You may elect to enable others in the same app.
+Once logged in, create an app for your research by clicking on your user name in the upper right and selecting Apps \> + NEW APP. In your app, be sure to enable the Article Search API. You may elect to enable others in the same app.
 
 Next, copy your API Key and paste it below where indicated. The API Key is personal to you and should be closely guarded. A good way to start is to store it as an environment variable. Alternatively, you can save your key to file locally and access it via the `load()` function.
 
@@ -435,7 +435,7 @@ Now, let's try using some of the filter query parameters. Leave the `q` value se
 
 ## NYT Article Search API: First Request
 
-Let's start with the q parameter, which searches the body, headline, and byline for relevant results. Note that we are still breaking down the URI as before, into base URI, endpoint, and parameters. This time we need to pass our API key into the URI as well. 
+Let's start with the q parameter, which searches the body, headline, and byline for relevant results. Note that we are still breaking down the URI as before, into base URI, endpoint, and parameters. This time we need to pass our API key into the URI as well.
 
 ```{r nobel}
 
@@ -450,6 +450,7 @@ nobel <- request("https://api.nytimes.com/svc/search/v2") %>%
 
 nobel
 ```
+
 Like most web APIs, this one returns a JSON response.
 
 ```{r str, results='hide'}
@@ -458,7 +459,7 @@ Like most web APIs, this one returns a JSON response.
 nobel %>% resp_body_json() %>% str()
 ```
 
-As usual, we are going to convert JSON into a dataframe to make it more manageable in R. First, we convert the response to text (string), then we parse and flatten it. 
+As usual, we are going to convert JSON into a dataframe to make it more manageable in R. First, we convert the response to text (string), then we parse and flatten it.
 
 ```{r nobel_flat}
 
@@ -536,6 +537,7 @@ p1 <- nobel_articles %>%
 
 p1
 ```
+
 ![Coverage by section](coverage-by-section.png)
 
 Years with the most coverage.
@@ -556,6 +558,7 @@ p2 <- nobel_articles %>%
 p2
 
 ```
+
 ![Coverage by year](coverage-by-year.png)
 
 So, what went on in 2006? There are several factors, but two obvious contributors were the revelation of Gûnther Grass's controversial past as well Turkish writer Orhan Pamuk's award that year, which came as something of a surprise.
@@ -572,7 +575,6 @@ nobel_articles %>%
   View() # open table view
 
 ```
-
 
 ## Exercise: NYT Article Search API
 
@@ -594,12 +596,25 @@ your_nyt <- your_nyt %>% resp_body_string()
 your_nyt_flat <- fromJSON(your_nyt, flatten = TRUE) %>% data.frame()
 ```
 
+## Write to file
+
+Want to use a spreadsheet application to manipulate or filter your data instead of R? Use the `write_csv()` function from the readr package to write your newspaper data to a comma separated value file (.csv). This is a file format that can be read in any spreadsheet application, like Excel or Google sheets. The file will appear in your Files panel in the lower right. Select it with your cursor, then go to More (gear icon) > Export and save to your computer.
+
+```{r write-to-file, eval=FALSE}
+
+# save your cats or nobel_articles datasets using this line
+# need help with any of the write functions? enter ?write_csv() at the console
+
+readr::write_csv(cats, "cats-loc-dataset.csv")
+
+```
+
 
 ## Sources
 
 Boehmer, James. "The New York Times Article Search API." 2013. <http://jamesboehmer.github.io/nytd2013/>.
 
-Evans, Daniel. “Chronicling America’s Newspaper Biographies as Data.” The National Endowment for the Humanities (blog), February 16, 2023. <https://www.neh.gov/blog/chronicling-americas-newspaper-biographies-data>.
+Evans, Daniel. "Chronicling America's Newspaper Biographies as Data." The National Endowment for the Humanities (blog), February 16, 2023. <https://www.neh.gov/blog/chronicling-americas-newspaper-biographies-data>.
 
 Fitzgerald, Jonathan D. "Working with The New York Times API in R." 2018. <https://www.storybench.org/working-with-the-new-york-times-api-in-r/>.
 
@@ -609,6 +624,6 @@ LC Labs. "Library of Congress Data Exploration." Last updated May 17, 2023. <htt
 
 ## Projects that Use Newspaper Data
 
-Interested in exploring projects in the humanities that use newspaper data? You might be interested in the winners of the [Chronicling America Data Challenge](https://www.neh.gov/news/press-release/2016-07-25). I'd also recommend searching [_Reviews in Digital Humanities_](https://reviewsindh.pubpub.org/) for any mention of "newspaper."
+Interested in exploring projects in the humanities that use newspaper data? You might be interested in the winners of the [Chronicling America Data Challenge](https://www.neh.gov/news/press-release/2016-07-25). I'd also recommend searching [*Reviews in Digital Humanities*](https://reviewsindh.pubpub.org/) for any mention of "newspaper."
 
 Lastly, Martin Saveedra (thanks, Martin!) tipped me off to the work of Melissa Dell on the Chronicling America data that improves OCR and detects content areas. I haven't dipped into it yet, but I thought I'd pass along the information. "American Stories": <https://dell-research-harvard.github.io/resources/americanstories>.

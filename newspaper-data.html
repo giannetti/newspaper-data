@@ -1016,6 +1016,20 @@ your_nyt &lt;- your_nyt %&gt;% resp_body_string()
 
 your_nyt_flat &lt;- fromJSON(your_nyt, flatten = TRUE) %&gt;% data.frame()</code></pre>
 </div>
+<div id="write-to-file" class="section level2">
+<h2>Write to file</h2>
+<p>Want to use a spreadsheet application to manipulate or filter your
+data instead of R? Use the <code>write_csv()</code> function from the
+readr package to write your newspaper data to a comma separated value
+file (.csv). This is a file format that can be read in any spreadsheet
+application, like Excel or Google sheets. The file will appear in your
+Files panel in the lower right. Select it with your cursor, then go to
+More (gear icon) &gt; Export and save to your computer.</p>
+<pre class="r"><code># save your cats or nobel_articles datasets using this line
+# need help with any of the write functions? enter ?write_csv() at the console
+
+readr::write_csv(cats, &quot;cats-loc-dataset.csv&quot;)</code></pre>
+</div>
 <div id="sources" class="section level2">
 <h2>Sources</h2>
 <p>Boehmer, James. “The New York Times Article Search API.” 2013. <a href="http://jamesboehmer.github.io/nytd2013/" class="uri">http://jamesboehmer.github.io/nytd2013/</a>.</p>
