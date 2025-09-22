@@ -522,10 +522,10 @@ retrieved with <code>resp_headers()</code> or a specific header with
 <code>resp_header()</code></p>
 <pre class="r"><code>resp %&gt;% resp_headers()</code></pre>
 <pre><code>## &lt;httr2_headers&gt;
-## date: Mon, 22 Sep 2025 14:26:28 GMT
+## date: Mon, 22 Sep 2025 16:23:16 GMT
 ## content-type: application/json
 ## content-length: 596467
-## cf-ray: 98327a3e2d0314ed-EWR
+## cf-ray: 983325554c8b33d5-EWR
 ## access-control-allow-origin: *
 ## referrer-policy: no-referrer-when-downgrade
 ## strict-transport-security: max-age=3600; preload
@@ -540,10 +540,10 @@ retrieved with <code>resp_headers()</code> or a specific header with
 ## x-nearside-cache-hits: 0
 ## cache-control: no-transform, max-age=86400
 ## cf-cache-status: HIT
-## age: 39298
+## age: 46306
 ## accept-ranges: bytes
 ## vary: Accept-Encoding
-## set-cookie: _cfuvid=RbwFuy.34LrFo0ntjh8oVGqcKB5b3CZXaY_IhaO6Rrk-1758551188224-0.0.1.1-604800000; path=/; domain=.loc.gov; HttpOnly; Secure; SameSite=None
+## set-cookie: _cfuvid=RI39EaeDaT.CE6egvKEqClvz0mgOBoT5MvEhm65r0r8-1758558196103-0.0.1.1-604800000; path=/; domain=.loc.gov; HttpOnly; Secure; SameSite=None
 ## server: cloudflare</code></pre>
 <pre class="r"><code>resp %&gt;% resp_header(&#39;content-length&#39;) # the byte count of the data in the body</code></pre>
 <pre><code>## [1] &quot;596467&quot;</code></pre>
@@ -886,7 +886,7 @@ nobel</code></pre>
 ## GET https://api.nytimes.com/svc/search/v2/articlesearch.json?api-key=G4eclG62mG4MIynrC5N5B2TSgFDvimps&amp;q=Nobel%20prize%20literature
 ## Status: 200 OK
 ## Content-Type: application/json
-## Body: In memory (17759 bytes)</code></pre>
+## Body: In memory (17760 bytes)</code></pre>
 <p>Like most web APIs, this one returns a JSON response.</p>
 <pre class="r"><code># the str() function in R displays the internal structure of an R object; it allows you to see all the nested structures and data types of the JSON response
 nobel %&gt;% resp_body_json() %&gt;% str()</code></pre>
@@ -1028,7 +1028,7 @@ More (gear icon) &gt; Export and save to your computer.</p>
 <pre class="r"><code># save your cats or nobel_articles datasets using this line
 # need help with any of the write functions? enter ?write_csv() at the console
 
-readr::write_csv(cats, &quot;cats-loc-dataset.csv&quot;)</code></pre>
+readr::write_csv(cats_df, &quot;cats-loc-dataset.csv&quot;)</code></pre>
 </div>
 <div id="sources" class="section level2">
 <h2>Sources</h2>

@@ -3,8 +3,9 @@ title: "Collecting Newspaper Data in R"
 author: "Francesca Giannetti"
 date: "2023-11-17"
 output:
+  pdf_document: 
+    highlight: espresso
   html_document: default
-  pdf_document: default
   word_document: default
 date-modified: "2025-09-22"
 ---
@@ -44,6 +45,7 @@ library(rmarkdown)
 library(knitr)
 
 knitr::opts_chunk$set(echo = TRUE)
+options(tinytex.verbose = TRUE) 
 ```
 
 ## Introduction
@@ -605,7 +607,7 @@ Want to use a spreadsheet application to manipulate or filter your data instead 
 # save your cats or nobel_articles datasets using this line
 # need help with any of the write functions? enter ?write_csv() at the console
 
-readr::write_csv(cats, "cats-loc-dataset.csv")
+readr::write_csv(cats_df, "cats-loc-dataset.csv")
 
 ```
 
