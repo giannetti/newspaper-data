@@ -3,9 +3,9 @@ title: "Collecting Newspaper Data in R"
 author: "Francesca Giannetti"
 date: "2023-11-17"
 output:
-  pdf_document: 
-    highlight: espresso
   html_document: default
+  pdf_document: 
+    highlight: zenburn
   word_document: default
 date-modified: "2025-09-22"
 ---
@@ -406,7 +406,7 @@ Unlike Chronicling America, the New York Times APIs do require user credentials.
 
 Go to <https://developer.nytimes.com/signup>. Click Create account and follow the prompts to register. Notice that the New York Times offers several APIs, including Article Search, Archive, Books, Comments, Movie Reviews, Top Stories, and more.
 
-Once logged in, create an app for your research by clicking on your user name in the upper right and selecting Apps \> + NEW APP. In your app, be sure to enable the Article Search API. You may elect to enable others in the same app.
+Once logged in, create an app for your research by clicking on your user name in the upper right and selecting Apps > + NEW APP. In your app, be sure to enable the Article Search API. You may elect to enable others in the same app.
 
 Next, copy your API Key and paste it below where indicated. The API Key is personal to you and should be closely guarded. A good way to start is to store it as an environment variable. Alternatively, you can save your key to file locally and access it via the `load()` function.
 
