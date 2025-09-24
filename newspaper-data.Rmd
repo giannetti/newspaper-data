@@ -3,10 +3,10 @@ title: "Collecting Newspaper Data in R"
 author: "Francesca Giannetti"
 date: "2023-11-17"
 output:
-  pdf_document: 
-    highlight: espresso
-  html_document: default
   word_document: default
+  pdf_document: 
+    highlight: zenburn
+  html_document: default
 date-modified: "2025-09-22"
 ---
 
@@ -221,11 +221,11 @@ In order to go beyond the 40 item response limit of a single API call, we need t
 ```{r eval=FALSE}
 
 # Define the search URL
-# We will limit ourselves to only front pages by using the `front_pages_only` field
+# We will limit ourselves to front pages by using the `front_pages_only` field
 searchURL <- "https://www.loc.gov/collections/chronicling-america/?dl=page&end_date=1918-12-31&front_pages_only=true&ops=PHRASE&qs=sanitary+train&searchType=advanced&start_date=1917-01-01&fo=json"
 
 # Define the function
-get_item_ids <- function(url, items = character(), conditional = TRUE, depth = 0, max_depth = 42) {
+get_item_ids <- function(url, items = character(), conditional = TRUE, depth = 0, max_depth = 7) {
   if (depth > max_depth) {
     warning("Maximum recursion depth reached. Stopping pagination.")
     return(items)
@@ -289,22 +289,20 @@ ids <- ids_list_json
 cat("\nSuccess! Your API Search Query found", length(ids), "related newspaper pages. You may proceed.\n")
 
 ```
-Next, we will want to get some basic metadata associated with the query and store it as a dataframe, and then possibly export it as a CSV file to play around with later. We are implementing the `req_throttle()` function in httr2 to keep within specified rate limits for the API.[^3]
-
-As a fun exercise, try to figure out how you could adapt the code that starts on line 395 to create a bar plot of mentions of "sanitary train" by state using the `df` object.
+Next, we will want to get some basic metadata associated with the query and store it as a dataframe, and then possibly export it as a CSV file to play around with later. We are implementing the `Sys.sleep()` function in base R to keep within specified rate limits for the API.[^3] Note: the next code chunk will take ca. 30 minutes to run to completion.
 
 [^3]: For more on rate limits with the Chronicling America API, see <https://libraryofcongress.github.io/data-exploration/loc.gov%20JSON%20API/Chronicling_America/README.html#rate-limits-and-definitions>.
 
 ```{r df, eval=FALSE}
-# Create a list to store the item metadata
+
+# Create a list to store metadata
 item_metadata_list <- list()
 
-# Loop through each item URL
-for (item_id in ids_list_json) {
-  # Build the request with throttling: max 15 requests per 60 seconds
-  req <- request(item_id) %>%
-    req_throttle(capacity = 15, fill_time_s = 60)
+# Define the function to perform the request and process the response
+fetch_metadata <- function(item_id) {
+  req <- request(item_id)
 
+  # Perform the request
   resp <- req_perform(req)
 
   # Check for successful response
@@ -312,45 +310,57 @@ for (item_id in ids_list_json) {
     item_data <- resp_body_json(resp)
 
     # Skip if 'location_city' is missing
-    if (is.null(item_data$item$location_city)) next
+    if (is.null(item_data$item$location_city)) return(NULL)
 
     # Extract metadata
     metadata <- list(
-      `Newspaper Title` = item_data$item$newspaper_title,
-      `Issue Date` = item_data$item$date,
-      `Page Number` = item_data$pagination$current,
-      `LCCN` = item_data$item$number_lccn,
-      `City` = item_data$item$location_city,
-      `State` = item_data$item$location_state,
-      `Contributor` = item_data$item$contributor_names,
-      `Batch` = item_data$item$batch,
-      `PDF Link` = item_data$resource$pdf
+      newspaper_title = item_data$item$newspaper_title,
+      issue_date = item_data$item$date,
+      page_number = item_data$pagination$current,
+      lccn = item_data$item$number_lccn,
+      city = item_data$item$location_city,
+      state = item_data$item$location_state,
+      contributor = item_data$item$contributor_names,
+      batch = item_data$item$batch,
+      pdf_link = item_data$resource$pdf,
+      full_text_link = item_data$fulltext_service
     )
 
-    item_metadata_list <- append(item_metadata_list, list(metadata))
+    return(metadata)
   }
+
+  return(NULL)
 }
 
-# Convert list of metadata to a data frame
+# Loop using manual throttling
+for (item_id in ids_list_json) {
+  result <- fetch_metadata(item_id)
+  if (!is.null(result)) {
+    item_metadata_list <- append(item_metadata_list, list(result))
+  }
+
+  # Enforce throttling: 1 request per 4 seconds (staying under the LOC's 20 per minute limit)
+  Sys.sleep(4)
+}
+
+# Convert to data frame
 df <- bind_rows(item_metadata_list)
 
-# Reformat date to MM-DD-YYYY
+# Reformat date
 df <- df %>%
-  mutate(`Issue Date` = format(lubridate::ymd(`Issue Date`), "%m-%d-%Y"))
+  mutate(issue_date = format(lubridate::ymd(issue_date), "%m-%d-%Y"))
 
-cat("\nReady to proceed to the next step!\n")
-
-# flatten lists in order to write to file
+# Flatten lists in order to write to file
 # Vector of column names that are lists
-list_columns <- c("Newspaper Title", "Page Number", "LCCN", "City", "State", "Contributor", "Batch")
+list_columns <- c("newspaper_title", "page_number", "lccn", "city", "state", "contributor", "batch")
 
 # Flatten each list column by collapsing elements into a comma-separated string
 df[list_columns] <- lapply(df[list_columns], function(col) {
   sapply(col, function(x) paste(x, collapse = ", "))
 })
 
-# write to file
-write.csv(df, "sanitary-train-chronicling-america-search-results.csv", fileEncoding = "UTF-8")
+# Write to file, if desired (uncomment next line)
+# write.csv(df, "sanitary-train-chronicling-america-search-results.csv", fileEncoding = "UTF-8")
 
 ```
 
@@ -374,31 +384,34 @@ df <- flatten(df)
 
 ## Some Data Manipulation and Visualization
 
-As a reminder, we've only got the first page of results in the `cats` object. But we can begin to form an idea of which state is the most catified with the following code chunk that makes use of the `dplyr` library for data manipulation. We will add a ggplot2 function call to visualize it as a bar chart.
+We could potentially create a map of front page mentions of the phrase "sanitary train" by geocoding the city and state columns we've collected. But we can begin to form an idea of where these mentions are coming from with the following code chunk that makes use of the `dplyr` library for data manipulation. We will add a ggplot2 function call to visualize them as a bar chart of mentions per state.
 
-```{r cats_by_state}
+```{r p1, eval=FALSE}
 
 # install.packages("dplyr")
 library(dplyr)
 
-# create a derivative dataset called cats_by_state
-cats_df[26,21] <- "south carolina" # overwrite previous value of c("georgia", "south carolina") since upon examination this paper was published in SC
-cats_df$state <- unlist(cats_df$location_state) # the location_state column is still stored as a list; let's create a new column based upon it with character data
-
-cats_by_state <- cats_df %>% 
+# create a derivative dataset called mentions_by_state
+mentions_by_state <- df %>% 
   group_by(state) %>% 
   summarize(count = n()) %>% 
   arrange(desc(count))
 
 # let's sort the count values in descending order for our visualization
-cats_by_state$state <- factor(cats_by_state$state, levels = cats_by_state$state[order(-cats_by_state$count)])
+mentions_by_state$state <- factor(mentions_by_state$state, levels = mentions_by_state$state[order(-mentions_by_state$count)])
 
 # visualize as a bar plot
-ggplot(cats_by_state, aes(x = state, y = count)) + geom_bar(stat = "identity", fill = "violetred4")
+p1 <- ggplot(mentions_by_state, aes(x = count, y = state)) + 
+  geom_bar(stat = "identity", fill = "violetred4") +
+  theme_minimal() +
+  labs(title = "Mentions of 'sanitary train' by state", subtitle = "Newspaper front pages published Jan 1917 through Dec 1918",
+       x = "", caption = "Data from Chronicling America")
 
+p1
 # for help learning dplyr, enter help(package = "dplyr") in the console
 
 ```
+![Mentions by state](mentions-by-state.png)
 
 ## NYT APIs: Preliminaries
 
@@ -406,7 +419,7 @@ Unlike Chronicling America, the New York Times APIs do require user credentials.
 
 Go to <https://developer.nytimes.com/signup>. Click Create account and follow the prompts to register. Notice that the New York Times offers several APIs, including Article Search, Archive, Books, Comments, Movie Reviews, Top Stories, and more.
 
-Once logged in, create an app for your research by clicking on your user name in the upper right and selecting Apps \> + NEW APP. In your app, be sure to enable the Article Search API. You may elect to enable others in the same app.
+Once logged in, create an app for your research by clicking on your user name in the upper right and selecting Apps > + NEW APP. In your app, be sure to enable the Article Search API. You may elect to enable others in the same app.
 
 Next, copy your API Key and paste it below where indicated. The API Key is personal to you and should be closely guarded. A good way to start is to store it as an environment variable. Alternatively, you can save your key to file locally and access it via the `load()` function.
 
@@ -520,10 +533,10 @@ nobel_articles[1:10,20] # looking at headline for the first 10 rows
 
 Coverage by section.
 
-```{r p1, eval=FALSE}
+```{r p2, eval=FALSE}
 
 # Visualize coverage by section
-p1 <- nobel_articles %>% 
+p2 <- nobel_articles %>% 
   group_by(response.docs.type_of_material) %>%
   summarize(count=n()) %>%
   mutate(percent = (count / sum(count))*100) %>% 
@@ -537,16 +550,16 @@ p1 <- nobel_articles %>%
   theme_minimal() +
   coord_flip()
 
-p1
+p2
 ```
 
 ![Coverage by section](coverage-by-section.png)
 
 Years with the most coverage.
 
-```{r p2, eval=FALSE}
+```{r p3, eval=FALSE}
 
-p2 <- nobel_articles %>%
+p3 <- nobel_articles %>%
   mutate(pubDay = gsub("T.*","",response.docs.pub_date),
          pubYear = lubridate::year(pubDay)) %>%
   group_by(pubYear) %>% 
@@ -557,7 +570,7 @@ p2 <- nobel_articles %>%
   theme_minimal() +
   coord_flip() 
 
-p2
+p3
 
 ```
 
