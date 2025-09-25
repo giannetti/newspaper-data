@@ -4,9 +4,9 @@ author: "Francesca Giannetti"
 date: "2023-11-17"
 output:
   word_document: default
+  html_document: default
   pdf_document: 
     highlight: zenburn
-  html_document: default
 date-modified: "2025-09-22"
 ---
 
@@ -174,7 +174,8 @@ It is also possible to return to the digitized page by retrieving the `url` valu
 
 ```{r cats_url}
 
-cats_df[1,44] # the url field of the first row (url is stored in column index 44)
+# indexing is done in R with square brackets
+cats_df[8,44] # the url field of the 8th row (url is stored in column index 44)
 
 ```
 
@@ -183,6 +184,8 @@ cats_df[1,44] # the url field of the first row (url is stored in column index 44
 This time, we will use some more functions from the [`httr2` package](https://httr2.r-lib.org/index.html) to construct our request. Note how we are still breaking up the base URI, the endpoint, and the parameters for greater clarity. We will use another parameter, `ops`, to look for a two-word phrase instead of a single word.
 
 A "sanitary train" is terminology specific to World War I. It refers to an ambulance unit that was assigned to support an entire infantry division. We can expect results mainly from the 1917-1918 time frame.
+
+![A truck-mounted sanitary train, from The doctor's part: what happens to the wounded in war](sanitary-train.png)
 
 Note that we only get 40 results in our dataframe. But if we examine the `wwi_json$search$hits` value, we see there are many more. We could retrieve these by constructing a for loop and using the `pagination` field to iterate through all the pages of results. Remember there are forty results per page, so we would iterate through `round(1675 / 40)` times.
 
@@ -225,7 +228,7 @@ In order to go beyond the 40 item response limit of a single API call, we need t
 searchURL <- "https://www.loc.gov/collections/chronicling-america/?dl=page&end_date=1918-12-31&front_pages_only=true&ops=PHRASE&qs=sanitary+train&searchType=advanced&start_date=1917-01-01&fo=json"
 
 # Define the function
-get_item_ids <- function(url, items = character(), conditional = TRUE, depth = 0, max_depth = 7) {
+get_item_ids <- function(url, items = character(), conditional = TRUE, depth = 0, max_depth = 42) {
   if (depth > max_depth) {
     warning("Maximum recursion depth reached. Stopping pagination.")
     return(items)
@@ -339,8 +342,8 @@ for (item_id in ids_list_json) {
     item_metadata_list <- append(item_metadata_list, list(result))
   }
 
-  # Enforce throttling: 1 request per 4 seconds (staying under the LOC's 20 per minute limit)
-  Sys.sleep(4)
+  # Enforce throttling: 1 request per 5 seconds (staying under the LOC's 20 per minute limit)
+  Sys.sleep(5)
 }
 
 # Convert to data frame
@@ -386,6 +389,8 @@ df <- flatten(df)
 
 We could potentially create a map of front page mentions of the phrase "sanitary train" by geocoding the city and state columns we've collected. But we can begin to form an idea of where these mentions are coming from with the following code chunk that makes use of the `dplyr` library for data manipulation. We will add a ggplot2 function call to visualize them as a bar chart of mentions per state.
 
+As an exercise, let's try visualizing the `cats_df` object in place of the sanitary train search.
+
 ```{r p1, eval=FALSE}
 
 # install.packages("dplyr")
@@ -411,6 +416,7 @@ p1
 # for help learning dplyr, enter help(package = "dplyr") in the console
 
 ```
+
 ![Mentions by state](mentions-by-state.png)
 
 ## NYT APIs: Preliminaries
